@@ -3,11 +3,11 @@
 #the full copyright notices and license terms.
 from flask import Blueprint, request, render_template, current_app, session, \
     redirect, url_for, flash, abort, g
-from flask_tryton import Tryton
 from flask.ext.babel import gettext as _
 from flask.ext.mail import Mail, Message
 from flask.ext.wtf import Form
-from wtforms import TextField, PasswordField, validators
+from wtforms import TextField, PasswordField, HiddenField, validators
+from .tryton import tryton
 from .signals import login as slogin, failed_login as sfailed_login, logout as slogout
 from .helpers import login_required
 
@@ -21,6 +21,13 @@ except ImportError:
     import sha
 
 galatea = Blueprint('galatea', __name__, template_folder='templates')
+
+GalateaUser = tryton.pool.get('galatea.user')
+Website = tryton.pool.get('galatea.website')
+Party = tryton.pool.get('party.party')
+ContactMechanism = tryton.pool.get('party.contact_mechanism')
+
+galatea_website = current_app.config.get('TRYTON_GALATEA_SITE')
 
 
 class LoginForm(Form):
@@ -99,8 +106,8 @@ class RegistrationForm(Form):
 
 class ActivateForm(Form):
     "Activate form"
-    act_code = TextField(_('Activation Code'), [validators.Required()])
-    email = TextField(_('Email'), [validators.Required(), validators.Email()])
+    act_code = HiddenField(_('Activation Code'), [validators.Required()])
+    email = HiddenField(_('Email'), [validators.Required(), validators.Email()])
 
     def __init__(self, *args, **kwargs):
         Form.__init__(self, *args, **kwargs)
@@ -171,6 +178,7 @@ def send_new_password(user):
     mail.send(msg)
 
 @galatea.route("/login", methods=["GET", "POST"], endpoint="login")
+@tryton.transaction()
 def login(lang):
     '''Login App'''
     data = {}
@@ -178,10 +186,6 @@ def login(lang):
     if not current_app.config.get('ACTIVE_LOGIN'):
         abort(404)
 
-    tryton = Tryton(current_app)
-    GalateaUser = tryton.pool.get('galatea.user')
-
-    @tryton.transaction()
     def _get_user(email):
         '''Search user by email
         :param email: string
@@ -247,6 +251,7 @@ def login(lang):
 
 @galatea.route('/logout', endpoint="logout")
 @login_required
+@tryton.transaction()
 def logout(lang):
     '''Logout App'''
     if not current_app.config.get('ACTIVE_LOGIN'):
@@ -264,17 +269,10 @@ def logout(lang):
 
 @galatea.route('/new-password', methods=["GET", "POST"], endpoint="new-password")
 @login_required
+@tryton.transaction()
 def new_password(lang):
     '''New Password User Account'''
 
-    tryton = Tryton(current_app)
-    GalateaUser = tryton.pool.get('galatea.user')
-
-    @tryton.default_context
-    def default_context():
-        return {'salt': False}
-
-    @tryton.transaction()
     def _save_password(password):
         '''Save new password user
         :param password: string
@@ -316,15 +314,12 @@ def new_password(lang):
     return render_template('new-password.html', form=form)
 
 @galatea.route('/reset-password', methods=["GET", "POST"], endpoint="reset-password")
+@tryton.transaction()
 def reset_password(lang):
     '''Reset Password User Account'''
     if not current_app.config.get('ACTIVE_LOGIN'):
         abort(404)
 
-    tryton = Tryton(current_app)
-    GalateaUser = tryton.pool.get('galatea.user')
-
-    @tryton.transaction()
     def _get_user(email):
         '''Search user by email
         :param email: string
@@ -344,7 +339,6 @@ def reset_password(lang):
             user, = users
         return user
 
-    @tryton.transaction()
     def _save_act_code(user, act_code):
         '''Write user activation code
         :param user: dict
@@ -378,6 +372,7 @@ def reset_password(lang):
     return render_template('reset-password.html', form=form)
 
 @galatea.route('/activate', methods=["GET", "POST"], endpoint="activate")
+@tryton.transaction()
 def activate(lang):
     '''Activate user account'''
     act_code = request.args.get('act_code')
@@ -388,10 +383,6 @@ def activate(lang):
         act_code = request.form.get('act_code')
         email = request.form.get('email')
 
-    tryton = Tryton(current_app)
-    GalateaUser = tryton.pool.get('galatea.user')
-
-    @tryton.transaction()
     def _get_user(email, act_code):
         '''Search user by email
         :param email: string
@@ -412,7 +403,6 @@ def activate(lang):
             user, = users
         return user
 
-    @tryton.transaction()
     def _reset_act_code(user):
         '''Add null activation code
         :param user: dict
@@ -451,20 +441,12 @@ def activate(lang):
     return redirect('/%s/' % g.language)
 
 @galatea.route('/registration', methods=["GET", "POST"], endpoint="registration")
+@tryton.transaction()
 def registration(lang):
     '''Registration User Account'''
     if not current_app.config.get('ACTIVE_REGISTRATION'):
         abort(404)
 
-    galatea_website = current_app.config.get('TRYTON_GALATEA_SITE')
-
-    tryton = Tryton(current_app)
-    Website = tryton.pool.get('galatea.website')
-    GalateaUser = tryton.pool.get('galatea.user')
-    Party = tryton.pool.get('party.party')
-    ContactMechanism = tryton.pool.get('party.contact_mechanism')
-
-    @tryton.transaction()
     def _get_user(email):
         '''Search user by email
         :param email: string
@@ -484,7 +466,6 @@ def registration(lang):
             user, = users
         return user
 
-    @tryton.transaction()
     def _save_user(data):
         '''Save user values
         :param data: dict
