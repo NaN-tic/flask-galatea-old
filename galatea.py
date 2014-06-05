@@ -193,12 +193,14 @@ def login(lang):
         '''
         users = GalateaUser.search_read([
             ('email', '=', email),
+            ('active', '=', True),
             ], limit=1, fields_names=[
                 'display_name',
                 'email',
                 'password',
                 'salt',
                 'activation_code',
+                'manager',
                 ])
         return users
 
@@ -238,11 +240,13 @@ def login(lang):
                 session['logged_in'] = True
                 session['user'] = user['id']
                 session['display_name'] = user['display_name']
+                if user['manager']:
+                    session['manager'] = True
                 flash(_('You are logged in'))
                 slogin.send()
                 return redirect(url_for('index', lang=g.language))
         else:
-            flash(_("Email user don't exist"))
+            flash(_("Email user don't exist or disabled user"))
 
         data['email'] = email
         sfailed_login.send(form=form)
@@ -261,6 +265,7 @@ def logout(lang):
     session.pop('logged_in', None)
     session.pop('user', None)
     session.pop('display_name', None)
+    session.pop('manager', None)
 
     slogout.send()
 
@@ -328,6 +333,7 @@ def reset_password(lang):
         user = None
         users = GalateaUser.search_read([
             ('email', '=', email),
+            ('active', '=', True),
             ], limit=1, fields_names=[
                 'display_name',
                 'email',
@@ -391,6 +397,7 @@ def activate(lang):
         user = None
         users = GalateaUser.search_read([
             ('email', '=', email),
+            ('active', '=', True),
             ('activation_code', '=', act_code),
             ], limit=1, fields_names=[
                 'display_name',
