@@ -6,7 +6,7 @@ from flask import Blueprint, request, render_template, current_app, session, \
 from flask.ext.babel import gettext as _
 from flask.ext.mail import Mail, Message
 from flask.ext.wtf import Form
-from wtforms import TextField, PasswordField, HiddenField, validators
+from wtforms import TextField, PasswordField, SelectField, HiddenField, validators
 from .tryton import tryton
 from .signals import login as slogin, failed_login as sfailed_login, logout as slogout
 from .helpers import login_required
@@ -28,7 +28,18 @@ Party = tryton.pool.get('party.party')
 ContactMechanism = tryton.pool.get('party.contact_mechanism')
 
 galatea_website = current_app.config.get('TRYTON_GALATEA_SITE')
+registration_vat = current_app.config.get('REGISTRATION_VAT')
+default_country = current_app.config.get('DEFAULT_COUNTRY')
 
+HAS_VATNUMBER = False
+VAT_COUNTRIES = [('', '')]
+try:
+    import vatnumber
+    HAS_VATNUMBER = True
+    for country in vatnumber.countries():
+        VAT_COUNTRIES.append((country, country))
+except ImportError:
+    pass
 
 class LoginForm(Form):
     "Login Password form"
@@ -84,11 +95,17 @@ class ResetPasswordForm(Form):
 
 class RegistrationForm(Form):
     "Registration form"
+    vat_required = None
+    if registration_vat:
+        vat_required = [validators.Required()]
+
     name = TextField(_('Name'), [validators.Required()])
     email = TextField(_('Email'), [validators.Required(), validators.Email()])
     password = PasswordField(_('Password'), [validators.Required(),
         validators.EqualTo('confirm', message=_('Passwords must match'))])
     confirm = PasswordField(_('Confirm Password'))
+    vat_country = SelectField(_('VAT Country'), choices=VAT_COUNTRIES)
+    vat_number = TextField(_('VAT Number'), vat_required)
 
     def __init__(self, *args, **kwargs):
         Form.__init__(self, *args, **kwargs)
@@ -102,6 +119,7 @@ class RegistrationForm(Form):
     def reset(self):
         self.password.data = ''
         self.confirm.data = ''
+        self.vat_number.data = ''
 
 
 class ActivateForm(Form):
@@ -500,6 +518,9 @@ def registration(lang):
                 'name': data.get('display_name'),
                 'addresses': [],
                 }
+            if registration_vat:
+                party_data['vat_country'] = vat_country
+                party_data['vat_number'] = vat_number
             party, = Party.create([party_data])
 
             contact_data = {
@@ -508,6 +529,9 @@ def registration(lang):
                 'value': data.get('email'),
                 }
             ContactMechanism.create([contact_data])
+
+        del data['vat_country']
+        del data['vat_number']
 
         data['company'] = website.company.id
         data['party'] = party.id
@@ -519,6 +543,8 @@ def registration(lang):
         email = request.form.get('email')
         password = request.form.get('password')
         confirm = request.form.get('confirm')
+        vat_country = request.form.get('vat_country')
+        vat_number = request.form.get('vat_number')
 
         if not (password == confirm and \
                 len(password) >= current_app.config.get('LEN_PASSWORD', 6)):
@@ -532,6 +558,11 @@ def registration(lang):
             flash(_('Email account exist. Do you forget password?'))
             return render_template('registration.html', form=form)
 
+        if registration_vat:
+            if not getattr(vatnumber, 'check_vat_' + vat_country.lower())(vat_number):
+                flash(_('Vat number no valid'))
+                return render_template('registration.html', form=form)
+
         act_code = create_act_code(code_type="new")
 
         # save new account - user
@@ -539,7 +570,9 @@ def registration(lang):
             'display_name': name,
             'email': email,
             'password': password,
-            'activation_code' : act_code,
+            'activation_code': act_code,
+            'vat_country': vat_country,
+            'vat_number': vat_number,
             }
         _save_user(data)
 
@@ -551,4 +584,5 @@ def registration(lang):
             email))
         form.reset()
 
+    form.vat_country.data = default_country.upper() or ''
     return render_template('registration.html', form=form)
