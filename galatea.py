@@ -30,6 +30,8 @@ ContactMechanism = tryton.pool.get('party.contact_mechanism')
 galatea_website = current_app.config.get('TRYTON_GALATEA_SITE')
 registration_vat = current_app.config.get('REGISTRATION_VAT')
 default_country = current_app.config.get('DEFAULT_COUNTRY')
+redirect_after_login = current_app.config.get('REDIRECT_AFTER_LOGIN', 'index')
+redirect_after_logout = current_app.config.get('REDIRECT_AFTER_LOGOUT', 'index')
 
 HAS_VATNUMBER = False
 VAT_COUNTRIES = [('', '')]
@@ -262,7 +264,7 @@ def login(lang):
                     session['manager'] = True
                 flash(_('You are logged in'))
                 slogin.send()
-                return redirect(url_for('index', lang=g.language))
+                return redirect(url_for(redirect_after_login, lang=g.language))
         else:
             flash(_("Email user don't exist or disabled user"))
 
@@ -288,7 +290,7 @@ def logout(lang):
     slogout.send()
 
     flash(_('You are logged out.'))
-    return redirect(url_for('index', lang=g.language))
+    return redirect(url_for(redirect_after_logout, lang=g.language))
 
 @galatea.route('/new-password', methods=["GET", "POST"], endpoint="new-password")
 @login_required
