@@ -215,6 +215,7 @@ def login(lang):
             ('email', '=', email),
             ('active', '=', True),
             ], limit=1, fields_names=[
+                'party',
                 'display_name',
                 'email',
                 'password',
@@ -260,6 +261,7 @@ def login(lang):
                 session['logged_in'] = True
                 session['user'] = user['id']
                 session['display_name'] = user['display_name']
+                session['customer'] = user['party']
                 if user['manager']:
                     session['manager'] = True
                 flash(_('You are logged in'))
@@ -286,6 +288,7 @@ def logout(lang):
     session.pop('user', None)
     session.pop('display_name', None)
     session.pop('manager', None)
+    session.pop('customer', None)
 
     slogout.send()
 
