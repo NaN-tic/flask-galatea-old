@@ -32,6 +32,7 @@ registration_vat = current_app.config.get('REGISTRATION_VAT')
 default_country = current_app.config.get('DEFAULT_COUNTRY')
 redirect_after_login = current_app.config.get('REDIRECT_AFTER_LOGIN', 'index')
 redirect_after_logout = current_app.config.get('REDIRECT_AFTER_LOGOUT', 'index')
+login_extra_fields = current_app.config.get('LOGIN_EXTRA_FIELDS', [])
 
 HAS_VATNUMBER = False
 VAT_COUNTRIES = [('', '')]
@@ -211,18 +212,21 @@ def login(lang):
         :param email: string
         return user list[dict]
         '''
+        fields = [
+            'party',
+            'display_name',
+            'email',
+            'password',
+            'salt',
+            'activation_code',
+            'manager',
+            ]
+        if login_extra_fields:
+            fields = fields+login_extra_fields
         users = GalateaUser.search_read([
             ('email', '=', email),
             ('active', '=', True),
-            ], limit=1, fields_names=[
-                'party',
-                'display_name',
-                'email',
-                'password',
-                'salt',
-                'activation_code',
-                'manager',
-                ])
+            ], limit=1, fields_names=fields)
         return users
 
     def _validate_user(user, password):
@@ -262,6 +266,8 @@ def login(lang):
                 session['user'] = user['id']
                 session['display_name'] = user['display_name']
                 session['customer'] = user['party']
+                for field in login_extra_fields: # add extra fields in session
+                     session[field] = user[field]
                 if user['manager']:
                     session['manager'] = True
                 flash(_('You are logged in'))
@@ -289,6 +295,9 @@ def logout(lang):
     session.pop('display_name', None)
     session.pop('manager', None)
     session.pop('customer', None)
+
+    for field in login_extra_fields: # drop extra session fields
+         session[field] = session.pop(field, None)
 
     slogout.send()
 
