@@ -20,7 +20,7 @@ def login_required(f):
     def decorated_function(*args, **kwargs):
         logged = session.get('logged_in', None)
         if not logged:
-            return redirect(url_for('galatea.login', lang='es'))
+            return redirect('%s?redirect=%s' % (url_for('galatea.login', lang='es'), request.path))
         return f(*args, **kwargs)
     return decorated_function
 

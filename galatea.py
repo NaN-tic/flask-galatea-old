@@ -272,6 +272,11 @@ def login(lang):
                     session['manager'] = True
                 flash(_('You are logged in'))
                 slogin.send()
+                if request.form.get('redirect'):
+                    # TODO: check redirect is a rule site
+                    path_redirect = request.form['redirect']
+                    if not path_redirect[:4] == 'http':
+                        return redirect(path_redirect)
                 return redirect(url_for(redirect_after_login, lang=g.language))
         else:
             flash(_("Email user don't exist or disabled user"))
