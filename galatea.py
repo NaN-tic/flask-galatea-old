@@ -2,7 +2,7 @@
 #The COPYRIGHT file at the top level of this repository contains 
 #the full copyright notices and license terms.
 from flask import Blueprint, request, render_template, current_app, session, \
-    redirect, url_for, flash, abort, g
+    jsonify, redirect, url_for, flash, abort, g
 from flask.ext.babel import gettext as _
 from flask.ext.mail import Mail, Message
 from flask.ext.wtf import Form
@@ -26,6 +26,7 @@ GalateaUser = tryton.pool.get('galatea.user')
 Website = tryton.pool.get('galatea.website')
 Party = tryton.pool.get('party.party')
 ContactMechanism = tryton.pool.get('party.contact_mechanism')
+Subdivision = tryton.pool.get('country.subdivision')
 
 galatea_website = current_app.config.get('TRYTON_GALATEA_SITE')
 registration_vat = current_app.config.get('REGISTRATION_VAT')
@@ -606,3 +607,19 @@ def registration(lang):
 
     form.vat_country.data = default_country.upper() or ''
     return render_template('registration.html', form=form)
+
+@galatea.route('/subdivisions', methods=['GET'], endpoint="subdivisions")
+@tryton.transaction()
+def subdivisions(lang):
+    '''Return all subdivisions by country (Json)'''
+    country = int(request.args.get('country', 0))
+    subdivisions = Subdivision.search([('country', '=', country)])
+
+    return jsonify(
+        result=[{
+            'id': s.id,
+            'name': s.name,
+            'code': s.code,
+            } for s in subdivisions
+            ]
+        )
