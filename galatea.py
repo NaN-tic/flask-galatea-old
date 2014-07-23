@@ -266,6 +266,7 @@ def login(lang):
                 session['user'] = user['id']
                 session['display_name'] = user['display_name']
                 session['customer'] = user['party']
+                session['email'] = user['email']
                 for field in login_extra_fields: # add extra fields in session
                      session[field] = user[field]
                 if user['manager']:
