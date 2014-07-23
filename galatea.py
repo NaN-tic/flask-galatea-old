@@ -302,6 +302,7 @@ def logout(lang):
     session.pop('display_name', None)
     session.pop('manager', None)
     session.pop('customer', None)
+    session.pop('email', None)
 
     for field in login_extra_fields: # drop extra session fields
          session[field] = session.pop(field, None)
