@@ -106,8 +106,7 @@ class RegistrationForm(Form):
 
     name = TextField(__('Name'), [validators.Required()])
     email = TextField(__('Email'), [validators.Required(), validators.Email()])
-    password = PasswordField(__('Password'), [validators.Required(),
-        validators.EqualTo('confirm', message=__('Passwords must match'))])
+    password = PasswordField(__('Password'), [validators.Required()])
     confirm = PasswordField(__('Confirm'))
     vat_country = SelectField(__('VAT Country'), choices=VAT_COUNTRIES)
     vat_number = TextField(__('VAT Number'), vat_required)
@@ -583,7 +582,7 @@ def registration(lang):
 
         if REGISTRATION_VAT:
             if not getattr(vatnumber, 'check_vat_' + vat_country.lower())(vat_number):
-                flash(_('Vat number is not valid.'))
+                flash(_('Vat number is not valid.'), 'danger')
                 return render_template('registration.html', form=form)
 
         act_code = create_act_code(code_type="new")
