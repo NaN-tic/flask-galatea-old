@@ -281,7 +281,7 @@ def login(lang):
                         return redirect(path_redirect)
                 return redirect(url_for(redirect_after_login, lang=g.language))
         else:
-            flash(_("Email user don't exist or disabled user"))
+            flash(_("User email don't exist or disabled user."))
 
         data['email'] = email
         sfailed_login.send(form=form)
@@ -350,10 +350,10 @@ def new_password(lang):
             user = _save_password(password)
             if user:
                 send_new_password(user)
-            flash(_('Saved password!'))
+            flash(_('The password has been saved.'))
         else:
-            flash(_("Password don't match or length not valid! " \
-                "Repeat add new password and save"), "danger")
+            flash(_("The passwords don't match or length is not valid! " \
+                "Add the new password another time and save."), "danger")
         form.reset()
 
     return render_template('new-password.html', form=form)
@@ -399,7 +399,7 @@ def reset_password(lang):
 
         user = _get_user(email)
         if not user:
-            flash(_('Not found email address'))
+            flash(_('Not found email address.'))
             return render_template('reset-password.html', form=form)
 
         # save activation code
@@ -411,7 +411,7 @@ def reset_password(lang):
         send_reset_email(user)
 
         flash('%s: %s' % (
-            _('An email has been sent to your account for resetting your password'),
+            _('An email has been sent to reset your password.'),
             user['email']))
         form.reset()
 
@@ -466,7 +466,7 @@ def activate(lang):
             session['logged_in'] = True
             session['user'] = user['id']
             session['display_name'] = user['display_name']
-            flash(_('Your account has been activated'))
+            flash(_('Your account has been activated.'))
             slogin.send()
         else:
             data = {
@@ -577,12 +577,12 @@ def registration(lang):
 
         user = _get_user(email)
         if user:
-            flash(_('Email account exist. Do you forget password?'))
+            flash(_('Email address already exists. Do you forget the password?'))
             return render_template('registration.html', form=form)
 
         if registration_vat:
             if not getattr(vatnumber, 'check_vat_' + vat_country.lower())(vat_number):
-                flash(_('Vat number no valid'))
+                flash(_('Vat number is not valid.'))
                 return render_template('registration.html', form=form)
 
         act_code = create_act_code(code_type="new")
@@ -602,7 +602,7 @@ def registration(lang):
         send_activation_email(data)
 
         flash('%s: %s' % (
-            _('An email has been sent to your email for active your account'),
+            _('An email has been sent to activate your account.'),
             email))
         form.reset()
 
