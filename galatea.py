@@ -3,7 +3,7 @@
 #the full copyright notices and license terms.
 from flask import Blueprint, request, render_template, current_app, session, \
     jsonify, redirect, url_for, flash, abort, g
-from flask.ext.babel import gettext as _
+from flask.ext.babel import gettext as _, lazy_gettext as __
 from flask.ext.mail import Mail, Message
 from flask.ext.wtf import Form
 from wtforms import TextField, PasswordField, SelectField, HiddenField, validators
@@ -63,9 +63,9 @@ class LoginForm(Form):
 
 class NewPasswordForm(Form):
     "New Password form"
-    password = PasswordField(_('Password'), [validators.Required(),
+    password = PasswordField(__('Password'), [validators.Required(),
         validators.EqualTo('confirm', message=_('Passwords must match'))])
-    confirm = PasswordField(_('Confirm Password'), [validators.Required()])
+    confirm = PasswordField(__('Confirm'), [validators.Required()])
 
     def __init__(self, *args, **kwargs):
         Form.__init__(self, *args, **kwargs)
@@ -104,13 +104,13 @@ class RegistrationForm(Form):
     if REGISTRATION_VAT:
         vat_required = [validators.Required()]
 
-    name = TextField(_('Name'), [validators.Required()])
-    email = TextField(_('Email'), [validators.Required(), validators.Email()])
-    password = PasswordField(_('Password'), [validators.Required(),
-        validators.EqualTo('confirm', message=_('Passwords must match'))])
-    confirm = PasswordField(_('Confirm Password'))
-    vat_country = SelectField(_('VAT Country'), choices=VAT_COUNTRIES)
-    vat_number = TextField(_('VAT Number'), vat_required)
+    name = TextField(__('Name'), [validators.Required()])
+    email = TextField(__('Email'), [validators.Required(), validators.Email()])
+    password = PasswordField(__('Password'), [validators.Required(),
+        validators.EqualTo('confirm', message=__('Passwords must match'))])
+    confirm = PasswordField(__('Confirm'))
+    vat_country = SelectField(__('VAT Country'), choices=VAT_COUNTRIES)
+    vat_number = TextField(__('VAT Number'), vat_required)
 
     def __init__(self, *args, **kwargs):
         Form.__init__(self, *args, **kwargs)
@@ -129,8 +129,8 @@ class RegistrationForm(Form):
 
 class ActivateForm(Form):
     "Activate form"
-    act_code = HiddenField(_('Activation Code'), [validators.Required()])
-    email = HiddenField(_('Email'), [validators.Required(), validators.Email()])
+    act_code = HiddenField(__('Activation Code'), [validators.Required()])
+    email = HiddenField(__('Email'), [validators.Required(), validators.Email()])
 
     def __init__(self, *args, **kwargs):
         Form.__init__(self, *args, **kwargs)
@@ -282,7 +282,7 @@ def login(lang):
                         return redirect(path_redirect)
                 return redirect(url_for(REDIRECT_AFTER_LOGIN, lang=g.language))
         else:
-            flash(_("User email don't exist or disabled user."))
+            flash(_("User email don't exist or disabled user."), 'danger')
 
         data['email'] = email
         sfailed_login.send(form=form)
