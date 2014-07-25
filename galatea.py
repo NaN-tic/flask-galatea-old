@@ -22,18 +22,12 @@ except ImportError:
 
 galatea = Blueprint('galatea', __name__, template_folder='templates')
 
-GalateaUser = tryton.pool.get('galatea.user')
-Website = tryton.pool.get('galatea.website')
-Party = tryton.pool.get('party.party')
-ContactMechanism = tryton.pool.get('party.contact_mechanism')
-Subdivision = tryton.pool.get('country.subdivision')
-
-galatea_website = current_app.config.get('TRYTON_GALATEA_SITE')
-registration_vat = current_app.config.get('REGISTRATION_VAT')
-default_country = current_app.config.get('DEFAULT_COUNTRY')
-redirect_after_login = current_app.config.get('REDIRECT_AFTER_LOGIN', 'index')
-redirect_after_logout = current_app.config.get('REDIRECT_AFTER_LOGOUT', 'index')
-login_extra_fields = current_app.config.get('LOGIN_EXTRA_FIELDS', [])
+GALATEA_WEBSITE = current_app.config.get('TRYTON_GALATEA_SITE')
+REGISTRATION_VAT = current_app.config.get('REGISTRATION_VAT')
+DEFAULT_COUNTRY = current_app.config.get('DEFAULT_COUNTRY')
+REDIRECT_AFTER_LOGIN = current_app.config.get('REDIRECT_AFTER_LOGIN', 'index')
+REDIRECT_AFTER_LOGOUT = current_app.config.get('REDIRECT_AFTER_LOGOUT', 'index')
+LOGIN_EXTRA_FIELDS = current_app.config.get('LOGIN_EXTRA_FIELDS', [])
 
 HAS_VATNUMBER = False
 VAT_COUNTRIES = [('', '')]
@@ -44,6 +38,13 @@ try:
         VAT_COUNTRIES.append((country, country))
 except ImportError:
     pass
+
+GalateaUser = tryton.pool.get('galatea.user')
+Website = tryton.pool.get('galatea.website')
+Party = tryton.pool.get('party.party')
+ContactMechanism = tryton.pool.get('party.contact_mechanism')
+Subdivision = tryton.pool.get('country.subdivision')
+
 
 class LoginForm(Form):
     "Login Password form"
@@ -100,7 +101,7 @@ class ResetPasswordForm(Form):
 class RegistrationForm(Form):
     "Registration form"
     vat_required = None
-    if registration_vat:
+    if REGISTRATION_VAT:
         vat_required = [validators.Required()]
 
     name = TextField(_('Name'), [validators.Required()])
@@ -222,8 +223,8 @@ def login(lang):
             'activation_code',
             'manager',
             ]
-        if login_extra_fields:
-            fields = fields+login_extra_fields
+        if LOGIN_EXTRA_FIELDS:
+            fields = fields+LOGIN_EXTRA_FIELDS
         users = GalateaUser.search_read([
             ('email', '=', email),
             ('active', '=', True),
@@ -268,7 +269,7 @@ def login(lang):
                 session['display_name'] = user['display_name']
                 session['customer'] = user['party']
                 session['email'] = user['email']
-                for field in login_extra_fields: # add extra fields in session
+                for field in LOGIN_EXTRA_FIELDS: # add extra fields in session
                      session[field] = user[field]
                 if user['manager']:
                     session['manager'] = True
@@ -279,7 +280,7 @@ def login(lang):
                     path_redirect = request.form['redirect']
                     if not path_redirect[:4] == 'http':
                         return redirect(path_redirect)
-                return redirect(url_for(redirect_after_login, lang=g.language))
+                return redirect(url_for(REDIRECT_AFTER_LOGIN, lang=g.language))
         else:
             flash(_("User email don't exist or disabled user."))
 
@@ -304,13 +305,13 @@ def logout(lang):
     session.pop('customer', None)
     session.pop('email', None)
 
-    for field in login_extra_fields: # drop extra session fields
+    for field in LOGIN_EXTRA_FIELDS: # drop extra session fields
          session[field] = session.pop(field, None)
 
     slogout.send()
 
     flash(_('You are logged out.'))
-    return redirect(url_for(redirect_after_logout, lang=g.language))
+    return redirect(url_for(REDIRECT_AFTER_LOGOUT, lang=g.language))
 
 @galatea.route('/new-password', methods=["GET", "POST"], endpoint="new-password")
 @login_required
@@ -520,7 +521,7 @@ def registration(lang):
         party = None
 
         websites = Website.search([
-            ('id', '=', galatea_website),
+            ('id', '=', GALATEA_WEBSITE),
             ], limit=1)
         if not websites:
             abort(404)
@@ -540,7 +541,7 @@ def registration(lang):
                 'name': data.get('display_name'),
                 'addresses': [],
                 }
-            if registration_vat:
+            if REGISTRATION_VAT:
                 party_data['vat_country'] = vat_country
                 party_data['vat_number'] = vat_number
             party, = Party.create([party_data])
@@ -580,7 +581,7 @@ def registration(lang):
             flash(_('Email address already exists. Do you forget the password?'))
             return render_template('registration.html', form=form)
 
-        if registration_vat:
+        if REGISTRATION_VAT:
             if not getattr(vatnumber, 'check_vat_' + vat_country.lower())(vat_number):
                 flash(_('Vat number is not valid.'))
                 return render_template('registration.html', form=form)
@@ -606,7 +607,7 @@ def registration(lang):
             email))
         form.reset()
 
-    form.vat_country.data = default_country.upper() or ''
+    form.vat_country.data = DEFAULT_COUNTRY.upper() or ''
     return render_template('registration.html', form=form)
 
 @galatea.route('/subdivisions', methods=['GET'], endpoint="subdivisions")
