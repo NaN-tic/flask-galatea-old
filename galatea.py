@@ -446,6 +446,7 @@ def activate(lang):
                 'salt',
                 'activation_code',
                 'party',
+                'email',
                 ])
         if users:
             user, = users
@@ -467,6 +468,7 @@ def activate(lang):
             session['logged_in'] = True
             session['user'] = user['id']
             session['customer'] = user['party']
+            session['email'] = user['email']
             session['display_name'] = user['display_name']
             flash(_('Your account has been activated.'))
             slogin.send()
