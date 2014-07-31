@@ -9,7 +9,7 @@ from flask.ext.wtf import Form
 from wtforms import TextField, PasswordField, SelectField, HiddenField, validators
 from .tryton import tryton
 from .signals import login as slogin, failed_login as sfailed_login, logout as slogout
-from .helpers import login_required
+from .helpers import login_required, manager_required
 
 import random
 import string
@@ -628,3 +628,25 @@ def subdivisions(lang):
             } for s in subdivisions
             ]
         )
+
+@galatea.route('/json/search', methods=['GET'], endpoint="jsonsearch")
+@manager_required
+@tryton.transaction()
+def jsonsearch(lang):
+    '''Search rec_name in model (Json)
+    
+    Example:
+    /json/search?model=party.party&query=%QUERY
+    '''
+    model = request.args.get('model')
+    query = request.args.get('query')
+
+    if not model:
+        return jsonify(result=[])
+
+    Model = tryton.pool.get(model)
+    rows = Model.search_read([
+        ('rec_name', 'ilike', '%'+query+'%'),
+        ], fields_names=['name'])
+
+    return jsonify(results=rows)
