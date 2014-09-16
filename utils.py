@@ -11,16 +11,34 @@ try:
 except ImportError:
     raise RuntimeError('Image module of PIL needs to be installed')
 
-def get_tryton_locale(locale):
+def get_tryton_language(lang):
     '''
-    Convert locale to tryton locales
+    Convert language to tryton languages
     Example: ca -> ca_ES
     '''
     languages = current_app.config.get('ACCEPT_LANGUAGES')
     for k, v in languages.iteritems():
         l = k.split('_')[0]
-        if l == locale:
+        if l == lang:
             return k
+
+def get_tryton_locale(lang):
+    '''
+    Get locale options from lang
+    '''
+    languages = {
+        'en': {'date': '%m/%d/%Y', 'thousands_sep': ',', 'decimal_point': '.',
+            'grouping': [3, 3, 0]},
+        'ca': {'date': '%d/%m/%Y', 'thousands_sep': ' ', 'decimal_point': ',',
+            'grouping': [3, 3, 0]},
+        'es': {'date': '%d/%m/%Y', 'thousands_sep': ',', 'decimal_point': '.',
+            'grouping': [3, 3, 0]},
+        'fr': {'date': '%d.%m.%Y', 'thousands_sep': ' ', 'decimal_point': ',',
+            'grouping': [3, 0]},
+        }
+    if languages.get(lang):
+        return languages.get(lang)
+    return languages.get('en')
 
 def slugify(value):
     """Convert value to slug: az09 and replace spaces by -"""
