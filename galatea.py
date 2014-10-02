@@ -306,7 +306,7 @@ def logout(lang):
     session.pop('email', None)
 
     for field in LOGIN_EXTRA_FIELDS: # drop extra session fields
-         session[field] = session.pop(field, None)
+         session.pop(field, None)
 
     slogout.send()
 
