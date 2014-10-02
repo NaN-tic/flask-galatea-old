@@ -540,12 +540,24 @@ def registration(lang):
             contact, = contacts
             party = contact.party
 
+        vat_country = data.get('vat_country')
+        vat_number = data.get('vat_number')
+
+        # search if vat exist
+        if REGISTRATION_VAT and vat_number:
+            parties = Party.search([
+                ('vat_country', '=', vat_country),
+                ('vat_number', '=', vat_number),
+                ], limit=1)
+            if parties:
+                party, = parties
+
         if not party:
             party_data = {
                 'name': data.get('display_name'),
                 'addresses': [],
                 }
-            if REGISTRATION_VAT:
+            if REGISTRATION_VAT and vat_number:
                 party_data['vat_country'] = vat_country
                 party_data['vat_number'] = vat_number
             party, = Party.create([party_data])
