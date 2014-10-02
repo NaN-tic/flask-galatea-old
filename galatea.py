@@ -227,6 +227,7 @@ def login(lang):
         users = GalateaUser.search_read([
             ('email', '=', email),
             ('active', '=', True),
+            ('websites', 'in', [GALATEA_WEBSITE]),
             ], limit=1, fields_names=fields)
         return users
 
