@@ -4,12 +4,8 @@
 from flask import current_app
 from trytond.config import CONFIG as tryton_config
 from slug import slug
-
+from PIL import Image
 import os
-try:
-    from PIL import Image, ImageOps
-except ImportError:
-    raise RuntimeError('Image module of PIL needs to be installed')
 
 def get_tryton_language(lang):
     '''
@@ -51,24 +47,16 @@ def slugify(value):
         name = ''
     return name
 
-def thumbnail(filename, thumbname, size, crop=None, bg=None, quality=85):
+def thumbnail(filename, thumbname, size, crop=None, quality=85):
     '''Create thumbnail image
 
     :param filename: image digest - '2566a0e6538be8e094431ff46ae58950'
     :param thumbname: file name image - 'test.jpg'
-    :param size: size return thumb - '100x100'
-    :param crop: crop return thumb - 'fit' or None
-    :param bg: tuple color or None - (255, 255, 255, 0)
+    :param size: size thumb - '100x100'
+    :param crop: crop thumb - top, middle, bottom or None
     :param quality: JPEG quality 1-100
-    :return: :thumb_url:
+    :return Thumb URL
     '''
-
-    def _bg_square(img, color=0xff):
-        size = (max(img.size),) * 2
-        layer = Image.new('L', size, color)
-        layer.paste(img, tuple(map(lambda x: (x[0] - x[1]) / 2, zip(size, img.size))))
-        return layer
-
     def _get_name(name, fm, *args):
         for v in args:
             if v:
@@ -79,7 +67,7 @@ def thumbnail(filename, thumbname, size, crop=None, bg=None, quality=85):
     width, height = [int(x) for x in size.split('x')]
     name, fm = os.path.splitext(thumbname)
 
-    miniature = _get_name(name, fm, size, crop, bg, quality)
+    miniature = _get_name(name, fm, size, crop, quality)
     
     original_filename = os.path.join(tryton_config['data_path'], current_app.config['TRYTON_DATABASE'], filename[0:2], filename[2:4], filename)
     thumb_filename = os.path.join(current_app.config['MEDIA_CACHE_FOLDER'], miniature)
@@ -89,22 +77,41 @@ def thumbnail(filename, thumbname, size, crop=None, bg=None, quality=85):
     if os.path.exists(thumb_filename):
         return thumb_url
     else:
-        thumb_size = (width, height)
+        size = (width, height)
 
         try:
-            image = Image.open(original_filename)  
+            img = Image.open(original_filename)
         except IOError:
             return current_app.config['BASE_IMAGE']
 
-        if crop == 'fit':
-            img = ImageOps.fit(image, thumb_size, Image.ANTIALIAS)
+        if crop:
+            img_ratio = img.size[0] / float(img.size[1])
+            ratio = size[0] / float(size[1])
+
+            #The image is scaled/cropped vertically or horizontally depending on the ratio
+            if ratio > img_ratio:
+                img = img.resize((size[0], size[0] * img.size[1] / img.size[0]), Image.ANTIALIAS)
+                # Crop in the top, middle or bottom
+                if crop == 'top':
+                    box = (0, 0, img.size[0], size[1])
+                elif crop == 'bottom':
+                    box = (0, img.size[1] - size[1], img.size[0], img.size[1])
+                else :
+                    box = (0, (img.size[1] - size[1]) / 2, img.size[0], (img.size[1] + size[1]) / 2)
+                img = img.crop(box)
+            elif ratio < img_ratio:
+                img = img.resize((size[1] * img.size[0] / img.size[1], size[1]), Image.ANTIALIAS)
+                # Crop in the top, middle or bottom
+                if crop == 'top':
+                    box = (0, 0, size[0], img.size[1])
+                elif crop == 'bottom':
+                    box = (img.size[0] - size[0], 0, img.size[0], img.size[1])
+                else :
+                    box = ((img.size[0] - size[0]) / 2, 0, (img.size[0] + size[0]) / 2, img.size[1])
+                img = img.crop(box)
         else:
-            img = image.copy()
-            img.thumbnail((width, height), Image.ANTIALIAS)
+            img.thumbnail(size)
 
-        if bg:
-            img = _bg_square(img, bg)
-
-        img.save(thumb_filename, image.format, quality=quality)
+        img.save(thumb_filename, img.format, quality=quality)
 
         return thumb_url
