@@ -10,6 +10,7 @@ from wtforms import TextField, PasswordField, SelectField, HiddenField, validato
 from .tryton import tryton
 from .signals import login as slogin, failed_login as sfailed_login, logout as slogout
 from .helpers import login_required, manager_required
+from trytond.transaction import Transaction
 
 import random
 import string
@@ -505,15 +506,16 @@ def registration(lang):
         return user list[dict]
         '''
         user = None
-        users = GalateaUser.search_read([
-            ('email', '=', email),
-            ], limit=1, fields_names=[
-                'display_name',
-                'email',
-                'password',
-                'salt',
-                'activation_code',
-                ])
+        with Transaction().set_context(active_test=False):
+            users = GalateaUser.search_read([
+                ('email', '=', email),
+                ], limit=1, fields_names=[
+                    'display_name',
+                    'email',
+                    'password',
+                    'salt',
+                    'activation_code',
+                    ])
         if users:
             user, = users
         return user
