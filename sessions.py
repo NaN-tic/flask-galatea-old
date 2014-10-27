@@ -1,3 +1,6 @@
+#This file is part galatea blueprint for Flask.
+#The COPYRIGHT file at the top level of this repository contains 
+#the full copyright notices and license terms.
 from flask import request
 from flask.sessions import SessionInterface, SessionMixin
 from werkzeug.contrib.sessions import Session as SessionBase, SessionStore
