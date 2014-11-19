@@ -2,7 +2,7 @@
 #The COPYRIGHT file at the top level of this repository contains 
 #the full copyright notices and license terms.
 from flask import current_app
-from trytond.config import CONFIG as tryton_config
+from trytond.config import config as tryton_config
 from slug import slug
 from PIL import Image
 import os
@@ -69,7 +69,7 @@ def thumbnail(filename, thumbname, size, crop=None, quality=85):
 
     miniature = _get_name(name, fm, size, crop, quality)
     
-    original_filename = os.path.join(tryton_config['data_path'], current_app.config['TRYTON_DATABASE'], filename[0:2], filename[2:4], filename)
+    original_filename = os.path.join(tryton_config.get('database', 'path'), current_app.config['TRYTON_DATABASE'], filename[0:2], filename[2:4], filename)
     thumb_filename = os.path.join(current_app.config['MEDIA_CACHE_FOLDER'], miniature)
 
     thumb_url = os.path.join(current_app.config['MEDIA_CACHE_URL'], miniature)
