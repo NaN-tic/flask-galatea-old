@@ -24,6 +24,15 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+def customer_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        customer = session.get('customer', None)
+        if not customer:
+            return redirect('%s?redirect=%s' % (url_for('galatea.logout', lang='es'), request.path))
+        return f(*args, **kwargs)
+    return decorated_function
+
 def manager_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
