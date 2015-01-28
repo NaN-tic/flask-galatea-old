@@ -275,7 +275,11 @@ def login(lang):
                 if user['manager']:
                     session['manager'] = True
                 flash(_('You are logged in'))
-                slogin.send()
+                slogin.send(current_app._get_current_object(),
+                    user=user['id'],
+                    session=session.sid,
+                    website=current_app.config.get('TRYTON_GALATEA_SITE', None),
+                    )
                 if request.form.get('redirect'):
                     # TODO: check redirect is a rule site
                     path_redirect = request.form['redirect']
@@ -298,6 +302,8 @@ def logout(lang):
     if not current_app.config.get('ACTIVE_LOGIN'):
         abort(404)
 
+    user = session.get('user')
+
     # Remove all sessions
     session.pop('logged_in', None)
     session.pop('user', None)
@@ -309,7 +315,10 @@ def logout(lang):
     for field in LOGIN_EXTRA_FIELDS: # drop extra session fields
          session.pop(field, None)
 
-    slogout.send()
+    slogout.send(current_app._get_current_object(),
+        user=user,
+        website=current_app.config.get('TRYTON_GALATEA_SITE', None),
+        )
 
     flash(_('You are logged out.'))
     return redirect(url_for(REDIRECT_AFTER_LOGOUT, lang=g.language))
@@ -473,7 +482,11 @@ def activate(lang):
             session['email'] = user['email']
             session['display_name'] = user['display_name']
             flash(_('Your account has been activated.'))
-            slogin.send()
+            slogin.send(current_app._get_current_object(),
+                user=user['id'],
+                session=session.sid,
+                website=current_app.config.get('TRYTON_GALATEA_SITE', None),
+                )
         else:
             data = {
                 'act_code': act_code,
@@ -487,7 +500,11 @@ def activate(lang):
         session['user'] = user['id']
         session['display_name'] = user['display_name']
         flash(_('You are logged in'))
-        slogin.send()
+        slogin.send(current_app._get_current_object(),
+            user=user['id'],
+            session=session.sid,
+            website=current_app.config.get('TRYTON_GALATEA_SITE', None),
+            )
 
         return redirect(url_for('.new-password', lang=g.language))
 
