@@ -8,6 +8,7 @@ Prerequisites
  * trytond (http://www.tryton.org/)
  * trytond-galatea
  * slug
+ * python-stdnum
 
 Installation
 ------------
