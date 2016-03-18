@@ -427,7 +427,7 @@ def reset_password(lang):
         send_reset_email(user)
 
         flash('%s: %s' % (
-            _('An email has been sent to reset your password.'),
+            _('An email has been sent to reset your password'),
             user['email']))
         form.reset()
 
