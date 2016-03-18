@@ -1,0 +1,5 @@
+Flask
+Flask-Babel>=0.8
+Flask-WTF>=0.8.3
+flask_tryton>=0.5
+python-stdnum
