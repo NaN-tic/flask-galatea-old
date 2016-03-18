@@ -8,7 +8,7 @@ def test_galatea(self):
 
     # registration
     response = self.client.post(url_for('galatea.registration', lang=self.language), data=dict(
-        name = 'User Test',
+        name = self.email.split('@')[0],
         email = self.email,
         password = self.password,
         confirm = self.password,
