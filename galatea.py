@@ -674,7 +674,7 @@ def registration(lang):
             send_activation_email(data)
 
             flash('%s: %s' % (
-                _('An email has been sent to activate your account.'),
+                _('An email has been sent to activate your account'),
                 email))
             form.reset()
 
