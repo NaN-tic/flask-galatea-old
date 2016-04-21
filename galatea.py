@@ -599,10 +599,11 @@ def registration(lang):
                     party_data['identifiers'] = [('create', [vat_party])]
 
             # contact mechanisms
-            contact_datas = [{
-                'type': 'email',
-                'value': data.get('email'),
-                }]
+            if data.get('email'):
+                contact_datas = [{
+                    'type': 'email',
+                    'value': data['email'],
+                    }]
             if data.get('phone'):
                 contact_datas.append({
                     'type': 'phone',
@@ -615,7 +616,7 @@ def registration(lang):
 
         del data['eu_vat']
         del data['vat_code']
-        if data.get('phone'):
+        if 'phone' in data:
             del data['phone']
 
         data['company'] = website.company.id
