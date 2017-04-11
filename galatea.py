@@ -5,7 +5,7 @@ from flask import Blueprint, request, render_template, current_app, session, \
     jsonify, redirect, url_for, flash, abort, g
 from flask_babel import gettext as _, lazy_gettext as __
 from flask_mail import Mail, Message
-from flask_wtf import Form
+from flask_wtf import FlaskForm as Form
 from wtforms import TextField, PasswordField, SelectField, HiddenField, validators
 from .tryton import tryton
 from .signals import login as slogin, failed_login as sfailed_login, \
