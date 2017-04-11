@@ -29,8 +29,8 @@ REGISTRATION_VAT = current_app.config.get('REGISTRATION_VAT', False)
 REGISTRATION_VAT_CHECK_CUSTOMER = current_app.config.get(
     'REGISTRATION_VAT_CHECK_CUSTOMER', False)
 DEFAULT_COUNTRY = current_app.config.get('DEFAULT_COUNTRY')
-REDIRECT_AFTER_LOGIN = current_app.config.get('REDIRECT_AFTER_LOGIN', 'index')
-REDIRECT_AFTER_LOGOUT = current_app.config.get('REDIRECT_AFTER_LOGOUT', 'index')
+REDIRECT_AFTER_LOGIN = current_app.config.get('REDIRECT_AFTER_LOGIN')
+REDIRECT_AFTER_LOGOUT = current_app.config.get('REDIRECT_AFTER_LOGOUT')
 LOGIN_EXTRA_FIELDS = current_app.config.get('LOGIN_EXTRA_FIELDS', [])
 
 GalateaUser = tryton.pool.get('galatea.user')
