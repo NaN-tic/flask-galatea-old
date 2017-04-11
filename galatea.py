@@ -1,5 +1,5 @@
 #This file is part galatea blueprint for Flask.
-#The COPYRIGHT file at the top level of this repository contains 
+#The COPYRIGHT file at the top level of this repository contains
 #the full copyright notices and license terms.
 from flask import Blueprint, request, render_template, current_app, session, \
     jsonify, redirect, url_for, flash, abort, g
@@ -25,12 +25,12 @@ except ImportError:
 galatea = Blueprint('galatea', __name__, template_folder='templates')
 
 GALATEA_WEBSITE = current_app.config.get('TRYTON_GALATEA_SITE')
-REGISTRATION_VAT = current_app.config.get('REGISTRATION_VAT')
+REGISTRATION_VAT = current_app.config.get('REGISTRATION_VAT', False)
 REGISTRATION_VAT_CHECK_CUSTOMER = current_app.config.get(
     'REGISTRATION_VAT_CHECK_CUSTOMER', False)
 DEFAULT_COUNTRY = current_app.config.get('DEFAULT_COUNTRY')
-REDIRECT_AFTER_LOGIN = current_app.config.get('REDIRECT_AFTER_LOGIN')
-REDIRECT_AFTER_LOGOUT = current_app.config.get('REDIRECT_AFTER_LOGOUT')
+REDIRECT_AFTER_LOGIN = current_app.config.get('REDIRECT_AFTER_LOGIN', 'index')
+REDIRECT_AFTER_LOGOUT = current_app.config.get('REDIRECT_AFTER_LOGOUT', 'index')
 LOGIN_EXTRA_FIELDS = current_app.config.get('LOGIN_EXTRA_FIELDS', [])
 
 GalateaUser = tryton.pool.get('galatea.user')
@@ -695,7 +695,7 @@ def registration(lang):
 @galatea.route('/subdivisions', methods=['GET'], endpoint="subdivisions")
 @tryton.transaction()
 def subdivisions(lang):
-    '''Return all subdivisions by country (Json)'''
+    '''Return all subdivisions by country (JSON)'''
     country = int(request.args.get('country', 0))
     subdivisions = Subdivision.search([('country', '=', country)])
 
@@ -713,7 +713,7 @@ def subdivisions(lang):
 @tryton.transaction()
 def jsonsearch(lang):
     '''Search rec_name in model (Json)
-    
+
     Example:
     /json/search?model=party.party&query=%QUERY
     '''
