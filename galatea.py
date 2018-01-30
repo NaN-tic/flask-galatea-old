@@ -199,6 +199,48 @@ def send_new_password(user):
             recipients = [user['email']])
     mail.send(msg)
 
+def _get_user(email, active=True, activation_code=None):
+    '''Get user
+    :param email: string
+    :param active: bool
+    :param activation_code: string
+    return user or None
+    '''
+    user = None
+    fields = [
+        'party',
+        'display_name',
+        'email',
+        'password',
+        'salt',
+        'activation_code',
+        'manager',
+        ]
+    if LOGIN_EXTRA_FIELDS:
+        fields = fields+LOGIN_EXTRA_FIELDS
+    domain = [
+        ('email', '=', email),
+        ('websites', 'in', [GALATEA_WEBSITE]),
+        ]
+    if activation_code:
+        domain.append(('activation_code', '=', activation_code))
+    with Transaction().set_context(active_test=active):
+        users = GalateaUser.search_read(domain, limit=1, fields_names=fields)
+        if users:
+            user, = users
+    return user
+
+def _set_session_user(user):
+    session['logged_in'] = True
+    session['user'] = user['id']
+    session['display_name'] = user['display_name']
+    session['customer'] = user['party']
+    session['email'] = user['email']
+    for field in LOGIN_EXTRA_FIELDS: # add extra fields in session
+         session[field] = user[field]
+    if user['manager']:
+        session['manager'] = True
+
 @galatea.route("/login", methods=["GET", "POST"], endpoint="login")
 @tryton.transaction()
 def login(lang):
@@ -207,29 +249,6 @@ def login(lang):
 
     if not current_app.config.get('ACTIVE_LOGIN'):
         abort(404)
-
-    def _get_user(email):
-        '''Search user by email
-        :param email: string
-        return user list[dict]
-        '''
-        fields = [
-            'party',
-            'display_name',
-            'email',
-            'password',
-            'salt',
-            'activation_code',
-            'manager',
-            ]
-        if LOGIN_EXTRA_FIELDS:
-            fields = fields+LOGIN_EXTRA_FIELDS
-        users = GalateaUser.search_read([
-            ('email', '=', email),
-            ('active', '=', True),
-            ('websites', 'in', [GALATEA_WEBSITE]),
-            ], limit=1, fields_names=fields)
-        return users
 
     def _validate_user(user, password):
         '''Validate user and password
@@ -263,21 +282,11 @@ def login(lang):
         email = request.form.get('email')
         password = request.form.get('password')
 
-        users = _get_user(email)
-
-        if users:
-            user, = users
+        user = _get_user(email)
+        if user:
             login = _validate_user(user, password)
             if login:
-                session['logged_in'] = True
-                session['user'] = user['id']
-                session['display_name'] = user['display_name']
-                session['customer'] = user['party']
-                session['email'] = user['email']
-                for field in LOGIN_EXTRA_FIELDS: # add extra fields in session
-                     session[field] = user[field]
-                if user['manager']:
-                    session['manager'] = True
+                _set_session_user(user)
                 flash(_('You are logged in'))
                 slogin.send(current_app._get_current_object(),
                     user=user['id'],
@@ -378,26 +387,6 @@ def reset_password(lang):
     if not current_app.config.get('ACTIVE_LOGIN'):
         abort(404)
 
-    def _get_user(email):
-        '''Search user by email
-        :param email: string
-        return user list[dict]
-        '''
-        user = None
-        users = GalateaUser.search_read([
-            ('email', '=', email),
-            ('active', '=', True),
-            ], limit=1, fields_names=[
-                'display_name',
-                'email',
-                'password',
-                'salt',
-                'activation_code',
-                ])
-        if users:
-            user, = users
-        return user
-
     def _save_act_code(user, act_code):
         '''Write user activation code
         :param user: dict
@@ -442,29 +431,6 @@ def activate(lang):
         act_code = request.form.get('act_code')
         email = request.form.get('email')
 
-    def _get_user(email, act_code):
-        '''Search user by email
-        :param email: string
-        return user list[dict]
-        '''
-        user = None
-        users = GalateaUser.search_read([
-            ('email', '=', email),
-            ('active', '=', True),
-            ('activation_code', '=', act_code),
-            ], limit=1, fields_names=[
-                'display_name',
-                'email',
-                'password',
-                'salt',
-                'activation_code',
-                'party',
-                'email',
-                ])
-        if users:
-            user, = users
-        return user
-
     def _reset_act_code(user):
         '''Add null activation code
         :param user: dict
@@ -472,17 +438,13 @@ def activate(lang):
         user = GalateaUser(int(user['id']))
         GalateaUser.write([user], {'activation_code': None})
 
-    user = _get_user(email, act_code)
+    user = _get_user(email, activation_code=act_code)
 
     # active new user
     if user and len(act_code) == 16:
         if request.method == 'POST':
+            _set_session_user(user)
             _reset_act_code(user) # reset activation code
-            session['logged_in'] = True
-            session['user'] = user['id']
-            session['customer'] = user['party']
-            session['email'] = user['email']
-            session['display_name'] = user['display_name']
             flash(_('Your account has been activated.'))
             slogin.send(current_app._get_current_object(),
                 user=user['id'],
@@ -498,9 +460,7 @@ def activate(lang):
 
     # active new password
     if user and len(act_code) == 12:
-        session['logged_in'] = True
-        session['user'] = user['id']
-        session['display_name'] = user['display_name']
+        _set_session_user(user)
         flash(_('You are logged in'))
         # Not signal login because cannot execute UPDATE in a read-only transaction
         return redirect(url_for('.new-password', lang=g.language))
@@ -513,26 +473,6 @@ def registration(lang):
     '''Registration User Account'''
     if not current_app.config.get('ACTIVE_REGISTRATION'):
         abort(404)
-
-    def _get_user(email):
-        '''Search user by email
-        :param email: string
-        return user list[dict]
-        '''
-        user = None
-        with Transaction().set_context(active_test=False):
-            users = GalateaUser.search_read([
-                ('email', '=', email),
-                ], limit=1, fields_names=[
-                    'display_name',
-                    'email',
-                    'password',
-                    'salt',
-                    'activation_code',
-                    ])
-        if users:
-            user, = users
-        return user
 
     def _save_user(data):
         '''Save user values
@@ -635,7 +575,7 @@ def registration(lang):
             form.reset()
             return render_template('registration.html', form=form)
 
-        user = _get_user(email)
+        user = _get_user(email, active=False)
         if user:
             flash(_('Email address already exists. Do you forget the password?'))
             return render_template('registration.html', form=form)
