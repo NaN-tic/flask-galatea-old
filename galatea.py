@@ -245,8 +245,6 @@ def _set_session_user(user):
 @tryton.transaction()
 def login(lang):
     '''Login App'''
-    data = {}
-
     if not current_app.config.get('ACTIVE_LOGIN'):
         abort(404)
 
@@ -277,6 +275,8 @@ def login(lang):
 
         return True
 
+    website = Website(GALATEA_WEBSITE)
+    data = {}
     form = LoginForm()
     if form.validate_on_submit():
         email = request.form.get('email')
@@ -291,7 +291,7 @@ def login(lang):
                 slogin.send(current_app._get_current_object(),
                     user=user['id'],
                     session=session.sid,
-                    website=current_app.config.get('TRYTON_GALATEA_SITE', None),
+                    website=GALATEA_WEBSITE,
                     )
                 if request.form.get('redirect'):
                     # TODO: check redirect is a rule site
@@ -308,7 +308,7 @@ def login(lang):
         data['email'] = email
         sfailed_login.send(form=form)
 
-    return render_template('login.html', form=form, data=data)
+    return render_template('login.html', form=form, data=data, website=website)
 
 @galatea.route('/logout', endpoint="logout")
 @login_required
@@ -325,7 +325,7 @@ def logout(lang):
 
     slogout.send(current_app._get_current_object(),
         user=user,
-        website=current_app.config.get('TRYTON_GALATEA_SITE', None),
+        website=GALATEA_WEBSITE,
         )
 
     flash(_('You are logged out.'))
@@ -362,6 +362,7 @@ def new_password(lang):
             return data
         return user
 
+    website = Website(GALATEA_WEBSITE)
     form = NewPasswordForm()
     if form.validate_on_submit():
         password = request.form.get('password')
@@ -378,7 +379,7 @@ def new_password(lang):
                 "Add the new password another time and save."), "danger")
         form.reset()
 
-    return render_template('new-password.html', form=form)
+    return render_template('new-password.html', form=form, website=website)
 
 @galatea.route('/reset-password', methods=["GET", "POST"], endpoint="reset-password")
 @tryton.transaction()
@@ -394,6 +395,8 @@ def reset_password(lang):
         '''
         user = GalateaUser(int(user['id']))
         GalateaUser.write([user], {'activation_code': act_code})
+
+    website = Website(GALATEA_WEBSITE)
 
     form = ResetPasswordForm()
     if form.validate_on_submit():
@@ -417,7 +420,7 @@ def reset_password(lang):
             user['email']))
         form.reset()
 
-    return render_template('reset-password.html', form=form)
+    return render_template('reset-password.html', form=form, website=website)
 
 @galatea.route('/activate', methods=["GET", "POST"], endpoint="activate")
 @tryton.transaction()
@@ -449,7 +452,7 @@ def activate(lang):
             slogin.send(current_app._get_current_object(),
                 user=user['id'],
                 session=session.sid,
-                website=current_app.config.get('TRYTON_GALATEA_SITE', None),
+                website=GALATEA_WEBSITE,
                 )
         else:
             data = {
@@ -474,19 +477,11 @@ def registration(lang):
     if not current_app.config.get('ACTIVE_REGISTRATION'):
         abort(404)
 
-    def _save_user(data):
+    def _save_user(website, data):
         '''Save user values
         :param data: dict
         '''
         party = None
-
-        websites = Website.search([
-            ('id', '=', GALATEA_WEBSITE),
-            ], limit=1)
-        if not websites:
-            abort(404)
-        website, = websites
-
         # search if email exist
         contacts = ContactMechanism.search([
             ('type', '=', 'email'),
@@ -558,6 +553,7 @@ def registration(lang):
         user, = GalateaUser.create([data])
         return user
 
+    website = Website(GALATEA_WEBSITE)
     form = RegistrationForm()
     if form.validate_on_submit():
         name = request.form.get('name')
@@ -605,7 +601,7 @@ def registration(lang):
             'eu_vat': eu_vat,
             'vat_code': vat_code,
             }
-        user = _save_user(data)
+        user = _save_user(website, data)
         if user:
             # send email activation account
             send_activation_email(data)
@@ -613,7 +609,7 @@ def registration(lang):
                 current_app._get_current_object(),
                 user=user,
                 data=request.form,
-                website=current_app.config.get('TRYTON_GALATEA_SITE', None),
+                website=GALATEA_WEBSITE,
                 )
             flash('%s: %s' % (
                 _('An email has been sent to activate your account'),
@@ -621,7 +617,7 @@ def registration(lang):
             form.reset()
 
     form.vat_country.data = DEFAULT_COUNTRY.upper() or ''
-    return render_template('registration.html', form=form)
+    return render_template('registration.html', form=form, website=website)
 
 @galatea.route('/subdivisions', methods=['GET'], endpoint="subdivisions")
 @tryton.transaction()
