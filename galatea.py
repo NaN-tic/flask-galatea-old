@@ -40,7 +40,7 @@ ContactMechanism = tryton.pool.get('party.contact_mechanism')
 Subdivision = tryton.pool.get('country.subdivision')
 
 VAT_COUNTRIES = [('', '')]
-for country in sorted(vat.country_codes):
+for country in sorted(vat._country_codes):
     VAT_COUNTRIES.append((country, country.upper()))
 
 
