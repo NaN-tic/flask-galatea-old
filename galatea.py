@@ -634,6 +634,7 @@ def registration(lang):
         result = form.save()
         user = result and result.get('user')
         if user:
+            # signal registration
             sregistration.send(
                 current_app._get_current_object(),
                 user=user,
@@ -645,7 +646,7 @@ def registration(lang):
                 login_user(user, remember=LOGIN_REMEMBER_ME)
                 return redirect(url_for('.login', lang=g.language))
             else:
-                # signal registration
+                # send email activation account
                 send_activation_email(user)
                 flash('%s: %s' % (
                     _('An email has been sent to activate your account'),
