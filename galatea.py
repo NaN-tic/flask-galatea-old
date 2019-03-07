@@ -109,6 +109,17 @@ class ResetPasswordForm(Form):
         self.email.data = ''
 
 
+def _get_vat_code(vat_country, vat_number):
+    eu_vat = False
+    if vat_country and vat_number:
+        eu_vat = True
+        vat_code = '%s%s' % (vat_country.upper(), vat_number)
+        vat_code = vat.compact(vat_code)
+    elif vat_number:
+        vat_code = vat_number
+    return vat_code, eu_vat
+
+
 class RegistrationForm(Form):
     "Registration form"
     vat_required = None
@@ -139,46 +150,54 @@ class RegistrationForm(Form):
         self.confirm.data = ''
         self.vat_number.data = ''
 
-    def save(self, send_act_code=True):
-        name = request.form.get('name')
-        email = request.form.get('email')
+    def check(self):
         password = request.form.get('password')
         confirm = request.form.get('confirm')
-        phone = request.form.get('phone')
+        email = request.form.get('email')
         vat_country = request.form.get('vat_country')
         vat_number = request.form.get('vat_number')
-        language = request.form.get('language')
 
         if not (password == confirm and
                 len(password) >= current_app.config.get('LEN_PASSWORD', 6)):
             flash(_("Password doesn't match or length not valid! "
                     "Add new password again and save"), "danger")
             self.reset()
-            return
-
-        user = _get_user(email, active=False)
-        if user:
+            return False
+        if _get_user(email, active=False):
             flash(_('Email address already exists. Do you forget the '
                     'password?'), 'danger')
-            return
+            return False
 
-        eu_vat = False
-        vat_code = None
-        if vat_country and vat_number:
-            eu_vat = True
-            vat_code = '%s%s' % (vat_country.upper(), vat_number)
-            vat_code = vat.compact(vat_code)
-            if not vat.is_valid(vat_code):
-                flash(_('VAT number is not valid.'), 'danger')
-                return
-        elif vat_number:
-            vat_code = vat_number
+        vat_code, eu_vat = _get_vat_code(vat_country, vat_number)
+        if not vat.is_valid(vat_code):
+            flash(_('VAT number is not valid.'), 'danger')
+            return False
+        parties = Party.search([
+            ('vat_code', '=', vat_code),
+            ], limit=1)
+        if parties:
+            if REGISTRATION_VAT_CHECK_CUSTOMER:
+                flash(_('A customer exists with your VAT. Please, '
+                        'login or contact us to create a new user.'),
+                    'danger')
+                return False
+        return True
+
+    def save(self, send_act_code=True):
+        name = request.form.get('name')
+        email = request.form.get('email')
+        password = request.form.get('password')
+        phone = request.form.get('phone')
+        vat_country = request.form.get('vat_country')
+        vat_number = request.form.get('vat_number')
+        language = request.form.get('language')
+
+        user = _get_user(email, active=False)
 
         if AUTOLOGIN_POSTREGISTRATION or not send_act_code:
             act_code = None
         else:
             act_code = create_act_code(code_type="new")
-
         party = None
         # search if email exist
         contacts = ContactMechanism.search([
@@ -189,16 +208,12 @@ class RegistrationForm(Form):
             contact, = contacts
             party = contact.party
         # search if vat exist
+        vat_code, eu_vat = _get_vat_code(vat_country, vat_number)
         if eu_vat and vat_code:
             parties = Party.search([
                 ('vat_code', '=', vat_code),
                 ], limit=1)
             if parties:
-                if REGISTRATION_VAT_CHECK_CUSTOMER:
-                    flash(_('A customer exists with your VAT. Please, '
-                            'login or contact us to create a new user.'),
-                        'danger')
-                    return
                 party, = parties
 
         if not party:
@@ -608,6 +623,7 @@ def activate(lang):
 @tryton.transaction()
 def registration(lang):
     '''Registration User Account'''
+
     if not current_app.config.get('ACTIVE_REGISTRATION'):
         abort(404)
 
@@ -630,7 +646,7 @@ def registration(lang):
         form.country.choices = countries
         form.country.data = website.country.id
 
-    if form.validate_on_submit():
+    if form.validate_on_submit() and form.check():
         result = form.save()
         user = result and result.get('user')
         if user:
