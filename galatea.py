@@ -609,14 +609,15 @@ def activate(lang):
                         data=data)
 
             # active new password
-            if len(act_code) == 12:
+            elif len(act_code) == 12:
                 login_user(user, remember=LOGIN_REMEMBER_ME)
                 flash(_('You are logged in'))
                 # Not signal login because cannot execute UPDATE in a read-only
                 # transaction
                 return redirect(url_for('.new-password', lang=g.language))
+            else:
+                flash(_('Activation code is not valid.'))
 
-    flash(_('Activation code is not valid.'))
     return redirect('/%s/' % g.language)
 
 @galatea.route('/registration', methods=["GET", "POST"], endpoint="registration")
