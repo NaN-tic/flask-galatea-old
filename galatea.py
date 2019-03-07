@@ -667,7 +667,7 @@ def registration(lang):
                 flash('%s: %s' % (
                     _('An email has been sent to activate your account'),
                     user.email))
-                form.reset()
+                return redirect(url_for('index', lang=g.language))
 
     form.vat_country.data = DEFAULT_COUNTRY.upper() or ''
     return render_template('registration.html', form=form, website=website)
