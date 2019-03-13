@@ -39,6 +39,7 @@ LOGIN_REMEMBER_ME = current_app.config.get('LOGIN_REMEMBER_ME', False)
 LOGIN_EXTRA_FIELDS = current_app.config.get('LOGIN_EXTRA_FIELDS', [])
 SEND_NEW_PASSWORD = current_app.config.get('SEND_NEW_PASSWORD', True)
 AUTOLOGIN_POSTREGISTRATION = current_app.config.get('AUTOLOGIN_POSTREGISTRATION')
+REDIRECT_POSTREGISTRATION = current_app.config.get('REDIRECT_POSTREGISTRATION')
 
 VAT_COUNTRIES = [('', '')]
 for country in sorted(vat._country_codes):
@@ -668,7 +669,8 @@ def registration(lang):
                 flash('%s: %s' % (
                     _('An email has been sent to activate your account'),
                     user.email))
-                return redirect(url_for('index', lang=g.language))
+                if REDIRECT_POSTREGISTRATION:
+                    return redirect(url_for('index', lang=g.language))
 
     form.vat_country.data = DEFAULT_COUNTRY.upper() or ''
     return render_template('registration.html', form=form, website=website)
