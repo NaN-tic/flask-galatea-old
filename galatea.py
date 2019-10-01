@@ -648,6 +648,12 @@ def registration(lang):
         form.country.choices = countries
         form.country.data = website.country.id
 
+    if hasattr(form, 'payment_type'):
+        form.payment_type.choices = [(x.id, x.name)
+            for x in website.payment_types]
+        if website.payment_type:
+            form.payment_type.data = website.payment_type.id
+
     if form.validate_on_submit() and form.check():
         result = form.save()
         user = result and result.get('user')
