@@ -569,7 +569,7 @@ def reset_password(lang):
     return render_template('reset-password.html', form=form)
 
 @galatea.route('/activate', methods=["GET", "POST"], endpoint="activate")
-@tryton.transaction()
+@tryton.transaction(readonly=False)
 def activate(lang):
     '''Activate user account'''
     act_code = request.args.get('act_code')
