@@ -423,7 +423,7 @@ def login(lang):
             flash(_("Your account has not been activated yet!"))
             return False
 
-        if isinstance(password, unicode):
+        if isinstance(password, str):
             password = password.encode('utf-8')
         salt = user.salt.encode('utf-8') if user.salt else ''
         if salt:

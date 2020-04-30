@@ -13,7 +13,7 @@ def get_tryton_language(lang):
     Example: ca -> ca_ES
     '''
     languages = current_app.config.get('ACCEPT_LANGUAGES')
-    for k, v in languages.iteritems():
+    for k, v in languages.items():
         l = k.split('_')[0]
         if l == lang:
             return k
@@ -39,10 +39,10 @@ def get_tryton_locale(lang):
 def slugify(value):
     """Convert value to slug: az09 and replace spaces by -"""
     try:
-        if isinstance(value, unicode):
+        if isinstance(value, str):
             name = slug(value)
         else:
-            name = slug(unicode(value, 'UTF-8'))
+            name = slug(str(value, 'UTF-8'))
     except:
         name = ''
     return name
