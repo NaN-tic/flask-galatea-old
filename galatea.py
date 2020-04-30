@@ -142,6 +142,11 @@ class RegistrationForm(Form):
         Form.__init__(self, *args, **kwargs)
 
     def validate(self):
+        # remove select fields to validate without choices and not required
+        for field in self._fields.copy():
+            if getattr(self, field).type == 'SelectField':
+                if not getattr(self, field).choices and not getattr(self, field).flags.required:
+                    delattr(self, field)
         rv = Form.validate(self)
         if not rv:
             return False
